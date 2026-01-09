@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "735146343330",
+    "project_id": "humanity-founders-assignment",
+    "storage_bucket": "humanity-founders-assignment.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:735146343330:android:89d2c2a9aedd5c2eb290fb",
+        "android_client_info": {
+          "package_name": "com.example.humanity_founders_assignment"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYbnKYFzgp0xc-GI46pCkyhNe5jJ0ZfEg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
