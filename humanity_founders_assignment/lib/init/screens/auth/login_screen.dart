@@ -58,12 +58,12 @@ class _LoginScreenState extends State<LoginScreen> {
       if (role == UserRole.leader) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const LeaderDashboard()),
+          MaterialPageRoute(builder: (_) => DashboardScreen()),
         );
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const WorshiperHome()),
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
     } on FirebaseAuthException catch (e) {

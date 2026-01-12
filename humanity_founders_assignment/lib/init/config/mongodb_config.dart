@@ -26,6 +26,13 @@ class MongoDBConfig {
   // Settings
   static const int DEFAULT_PAGE_SIZE = 20;
   static const int MAX_MESSAGES_PER_CONVERSATION = 50;
+  static const int CONNECTION_TIMEOUT = 10000; // 10 seconds
+
+  // Validation
+  static bool isValidConnectionString() {
+    return CONNECTION_STRING.isNotEmpty &&
+        CONNECTION_STRING.startsWith('mongodb');
+  }
 
   // Prevent instantiation
   MongoDBConfig._();

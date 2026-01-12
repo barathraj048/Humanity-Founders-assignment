@@ -4,6 +4,7 @@ import '../../services/auth_service.dart';
 import '../worshiper/home.dart';
 import '../leader/dashboard.dart';
 import 'login_screen.dart';
+import '../../services/mongodb_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -55,7 +56,7 @@ class _SignupScreenState extends State<SignupScreen> {
     });
 
     try {
-      // Create user with Firebase
+      // 1️⃣ Create user with Firebase
       await authService.createUser(
         email: _emailController.text.trim(),
         password: _passwordController.text,
@@ -63,9 +64,21 @@ class _SignupScreenState extends State<SignupScreen> {
         role: _selectedRole,
       );
 
+      // 2️⃣ Insert user in MongoDB
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+
+      await MongoDBService().createUser({
+        "_id": firebaseUser!.uid, // Use Firebase UID as Mongo _id
+        "firebaseUid": firebaseUser.uid,
+        "email": firebaseUser.email,
+        "displayName": _nameController.text.trim(),
+        "role": _selectedRole == UserRole.leader ? "leader" : "worshiper",
+        "createdAt": DateTime.now().toIso8601String(),
+      });
+
       if (!mounted) return;
 
-      // Show success message
+      // 3️⃣ Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Account created successfully!'),
@@ -74,16 +87,16 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
       );
 
-      // Navigate based on role
+      // 4️⃣ Navigate based on role
       if (_selectedRole == UserRole.leader) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const LeaderDashboard()),
+          MaterialPageRoute(builder: (_) => DashboardScreen()),
         );
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const WorshiperHome()),
+          MaterialPageRoute(builder: (_) => HomeScreen()),
         );
       }
     } on FirebaseAuthException catch (e) {

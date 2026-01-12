@@ -1,6 +1,7 @@
 // lib/init/services/mongodb_service.dart
 
 import 'package:mongo_dart/mongo_dart.dart';
+import 'package:flutter/foundation.dart';
 import '../config/mongodb_config.dart';
 
 class MongoDBService {
@@ -11,6 +12,9 @@ class MongoDBService {
   Db? _db;
   bool _isConnected = false;
 
+  bool get isConnected => _isConnected;
+  Db? get database => _db;
+
   // Connect to MongoDB
   Future<void> connect() async {
     if (_isConnected && _db != null) return;
@@ -19,9 +23,13 @@ class MongoDBService {
       _db = await Db.create(MongoDBConfig.CONNECTION_STRING);
       await _db!.open();
       _isConnected = true;
-      print('✅ MongoDB connected successfully');
+      if (kDebugMode) {
+        debugPrint('✅ MongoDB connected successfully');
+      }
     } catch (e) {
-      print('❌ MongoDB connection failed: $e');
+      if (kDebugMode) {
+        debugPrint('❌ MongoDB connection failed: $e');
+      }
       rethrow;
     }
   }
@@ -49,7 +57,17 @@ class MongoDBService {
   Future<Map<String, dynamic>?> getUser(String userId) async {
     await _ensureConnected();
     final users = _getCollection(MongoDBConfig.USERS_COLLECTION);
-    return await users.findOne(where.eq('_id', userId));
+    // Try finding by _id first (for MongoDB ObjectId)
+    var user = await users.findOne(where.eq('_id', userId));
+    // If not found, try finding by firebaseUid using null-aware operator
+    user ??= await users.findOne(where.eq('firebaseUid', userId));
+    return user;
+  }
+
+  Future<Map<String, dynamic>?> getUserByFirebaseUid(String firebaseUid) async {
+    await _ensureConnected();
+    final users = _getCollection(MongoDBConfig.USERS_COLLECTION);
+    return await users.findOne(where.eq('firebaseUid', firebaseUid));
   }
 
   Future<void> updateUser(String userId, Map<String, dynamic> updates) async {
@@ -157,32 +175,59 @@ class MongoDBService {
   }
 
   Future<List<Map<String, dynamic>>> getConversation(
-      String userId1, String userId2,
-      {int limit = 50}) async {
+    String userId1,
+    String userId2, {
+    int limit = 50,
+  }) async {
     await _ensureConnected();
     final messages = _getCollection(MongoDBConfig.MESSAGES_COLLECTION);
 
     final conversationId1 = '${userId1}_$userId2';
     final conversationId2 = '${userId2}_$userId1';
 
-    return await messages
-        .find(where
-            .oneFrom('conversationId', [conversationId1, conversationId2])
-            .sortBy('createdAt', descending: false)
-            .limit(limit))
+    // Fixed: Use $or operator with raw MongoDB query
+    final result = await messages
+        .find(
+          where
+              .raw({
+                '\$or': [
+                  {'conversationId': conversationId1},
+                  {'conversationId': conversationId2},
+                ],
+              })
+              .sortBy('createdAt')
+              .limit(limit),
+        )
         .toList();
+
+    // Convert ObjectId to String and parse dates
+    return result.map((msg) {
+      if (msg['_id'] is ObjectId) {
+        msg['_id'] = (msg['_id'] as ObjectId).oid;
+      }
+      if (msg['createdAt'] is String) {
+        msg['createdAt'] = DateTime.parse(msg['createdAt']);
+      }
+      return msg;
+    }).toList();
   }
 
   Future<List<Map<String, dynamic>>> getRecentConversations(
-      String userId) async {
+    String userId,
+  ) async {
     await _ensureConnected();
     final messages = _getCollection(MongoDBConfig.MESSAGES_COLLECTION);
 
-    // Get all messages where user is sender or receiver
+    // Fixed: Use $or operator with raw MongoDB query
     final allMessages = await messages
-        .find(where
-            .or(where.eq('senderId', userId))
-            .or(where.eq('receiverId', userId)))
+        .find(
+          where.raw({
+            '\$or': [
+              {'senderId': userId},
+              {'receiverId': userId},
+            ],
+          }),
+        )
         .toList();
 
     // Group by conversation and get latest message
@@ -190,8 +235,18 @@ class MongoDBService {
 
     for (var msg in allMessages) {
       final conversationId = msg['conversationId'] as String;
+
+      // Convert createdAt to DateTime if it's a string
+      DateTime msgTime;
+      if (msg['createdAt'] is String) {
+        msgTime = DateTime.parse(msg['createdAt']);
+        msg['createdAt'] = msgTime;
+      } else {
+        msgTime = msg['createdAt'] as DateTime;
+      }
+
       if (!conversations.containsKey(conversationId) ||
-          (msg['createdAt'] as DateTime).isAfter(
+          msgTime.isAfter(
               conversations[conversationId]!['createdAt'] as DateTime)) {
         conversations[conversationId] = msg;
       }
@@ -208,10 +263,17 @@ class MongoDBService {
   Future<void> markMessageAsRead(String messageId) async {
     await _ensureConnected();
     final messages = _getCollection(MongoDBConfig.MESSAGES_COLLECTION);
-    await messages.updateOne(
-      where.eq('_id', messageId),
-      modify.set('isRead', true),
-    );
+
+    try {
+      await messages.updateOne(
+        where.eq('_id', messageId),
+        modify.set('isRead', true),
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error marking message as read: $e');
+      }
+    }
   }
 
   // ==================== CONNECTION MANAGEMENT ====================
@@ -220,7 +282,9 @@ class MongoDBService {
     if (_isConnected && _db != null) {
       await _db!.close();
       _isConnected = false;
-      print('MongoDB connection closed');
+      if (kDebugMode) {
+        debugPrint('MongoDB connection closed');
+      }
     }
   }
 }

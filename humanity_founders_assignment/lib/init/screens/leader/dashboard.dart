@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import 'widgets/leader_bottom_nav.dart';
 
-class LeaderDashboard extends StatelessWidget {
-  const LeaderDashboard({super.key});
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
 
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = AuthService();

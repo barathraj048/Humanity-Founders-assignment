@@ -1,33 +1,30 @@
-// lib/main.dart
-
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'init/services/mongodb_service.dart';
 import 'init/integration/auth_wrapper.dart';
 
-// Global MongoDB instance
 final mongoDBService = MongoDBService();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase (for Auth only)
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('✅ Firebase initialized');
+  } catch (e) {
+    print('❌ Firebase initialization failed: $e');
+  }
 
   // Initialize MongoDB
   try {
     await mongoDBService.connect();
-    if (kDebugMode) {
-      debugPrint('✅ MongoDB initialized successfully');
-    }
+    print('✅ MongoDB initialized successfully');
   } catch (e) {
-    if (kDebugMode) {
-      debugPrint('❌ MongoDB initialization failed: $e');
-    }
+    print('❌ MongoDB initialization failed: $e');
     // App can still run with limited functionality
   }
 

@@ -3,9 +3,14 @@ import '../../services/auth_service.dart';
 import 'widgets/post_card.dart';
 import 'widgets/bottom_nav.dart';
 
-class WorshiperHome extends StatelessWidget {
-  const WorshiperHome({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(

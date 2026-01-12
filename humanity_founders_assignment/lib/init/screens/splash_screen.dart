@@ -43,12 +43,12 @@ class _SplashScreenState extends State<SplashScreen> {
       if (userData?.role == UserRole.leader) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const LeaderDashboard()),
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
         );
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const WorshiperHome()),
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
     }
